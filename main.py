@@ -170,7 +170,14 @@ def test_env_dynamics():
                     print("State: {}, n_state: {}, action {} is true, reward {}".format(rent.map_state(state), rent.map_state(n_state), action, rent.env_reward(action)))
 
 
-def map_action(act_num):
+def test_pol_eval():
+    rent = JackRental([[3, 3, 5], [4, 2, 5]])
+    policy = np.matrix([[0.5] * 41] * 441)
+    V = pol_eval(rent, policy)
+    print(V)
+
+
+def map_action(act_num: int):
     """
     simplified to work only for two stores (sorry)
     :param act_num:  action ID
@@ -180,7 +187,7 @@ def map_action(act_num):
         return (0, 0, 0)
     elif act_num < 21:
         return (0, 1, act_num % 21)
-    elif act_num <= 41:
+    elif act_num < 41:
         return (1, 0, (act_num % 21) + 1)
     else:
         raise Exception("Action value {} not defined!".format(act_num))
@@ -192,13 +199,13 @@ def pol_eval(env, policy, theta=1e-4):
     :param theta: threshold to stop the evaluation
     :return: state values after policy evaluation
     """
-    V = policy.shape[0]
+    V = np.zeros(policy.shape[0], dtype=float)
     delta = 1e100
     while delta > theta:
         delta = 0.0
         for s in range(len(V)):
-            a = max(policy[s,:])
-            new_V = sum([env.env_dynamics(s, a, n_s)*(env.env_reward + 0.9*V[n_s]) for n_s in range(len(V))])
+            a = np.max(policy[s,:])
+            new_V = sum([env.env_dynamics(s, a, n_s)*(env.env_reward(a) + 0.9*V[n_s]) for n_s in range(len(V))])
             delta = np.maximum(delta, np.abs(V[s] - new_V))
             V[s] = new_V
     return V
@@ -210,6 +217,4 @@ def policy_iteration():
 
 if __name__ == "__main__":
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    test_env_dynamics()
-    # policy = np.matrix([0.5]*)
-    # pol_eval(rent, )
+    test_pol_eval()
