@@ -95,6 +95,8 @@ class JackRental:
         :param state_num: state index
         :return: [num_of_cars_store_n, ... num_of_cars_store_1, num_of_cars_store_0]
         """
+        if state_num > sum([20*21**idx for idx in range(len(self._stores))]):
+            raise Exception("State value {} not defined!".format(state_num))
         store_car_num = []
         for idx in range(len(self._stores), 0, -1):
             div_num = state_num//(21**idx)
@@ -106,6 +108,13 @@ class JackRental:
         return store_car_num
 
     def env_dynamics(self, state, action_idx, next_state):
+        """
+        return probability of achieving state s' given actual state s and performed action a.
+        :param state: s
+        :param action_idx: a
+        :param next_state: s'
+        :return: p(s'|s,a)
+        """
         car_count = self.map_state(state)
         next_car_count = self.map_state(next_state)
         from_idx, to_idx, amount = map_action(action_idx)
@@ -117,6 +126,11 @@ class JackRental:
                 car_count[to_idx] + amount == next_car_count[to_idx]:
                 return 1
         return 0
+
+    def env_reward(self, action_idx):
+        _, _, amount = map_action(action_idx)
+        return -2*amount
+
 
 def test_rent():
     rent = JackRental([[3, 3, 0], [4, 2, 5]])
@@ -149,11 +163,11 @@ def test_map_state():
 
 def test_env_dynamics():
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    for state in range(440):
-        for action in range(40):
-            for n_state in range(440):
+    for state in range(441):
+        for action in range(42):
+            for n_state in range(441):
                 if rent.env_dynamics(state, action, n_state):
-                    print("State: {}, n_state: {}, action {} is true".format(rent.map_state(state), rent.map_state(n_state), action))
+                    print("State: {}, n_state: {}, action {} is true, reward {}".format(rent.map_state(state), rent.map_state(n_state), action, rent.env_reward(action)))
 
 
 def map_action(act_num):
@@ -166,11 +180,13 @@ def map_action(act_num):
         return (0, 0, 0)
     elif act_num < 21:
         return (0, 1, act_num % 21)
+    elif act_num <= 41:
+        return (1, 0, (act_num % 21) + 1)
     else:
-        return (1, 0, (act_num % 21)+1)
+        raise Exception("Action value {} not defined!".format(act_num))
 
 
-def pol_eval(self, policy, theta=1e-4):
+def pol_eval(env, policy, theta=1e-4):
     """
     :param policy: matrix of policy in format [n_states, n_actions]
     :param theta: threshold to stop the evaluation
@@ -181,13 +197,10 @@ def pol_eval(self, policy, theta=1e-4):
     while delta > theta:
         delta = 0.0
         for s in range(len(V)):
-            for a, action in enumerate(["u", "d", "l", "r"]):
-                n_s, r = self._walk(s, action)
-                V[s] += (r + V[n_s])
-            new_V = np.dot(policy[s, :], np.transpose(Q[s, :]))[0, 0]
+            a = max(policy[s,:])
+            new_V = sum([env.env_dynamics(s, a, n_s)*(env.env_reward + 0.9*V[n_s]) for n_s in range(len(V))])
             delta = np.maximum(delta, np.abs(V[s] - new_V))
             V[s] = new_V
-    self._values = V
     return V
 
 
@@ -197,3 +210,6 @@ def policy_iteration():
 
 if __name__ == "__main__":
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
+    test_env_dynamics()
+    # policy = np.matrix([0.5]*)
+    # pol_eval(rent, )
