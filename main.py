@@ -109,7 +109,11 @@ class JackRental:
         car_count = self.map_state(state)
         next_car_count = self.map_state(next_state)
         from_idx, to_idx, amount = map_action(action_idx)
-        if car_count[from_idx] - amount == next_car_count[from_idx] and \
+        if action_idx == 0:
+            if car_count == next_car_count:
+                return 1
+            return 0
+        elif car_count[from_idx] - amount == next_car_count[from_idx] and \
                 car_count[to_idx] + amount == next_car_count[to_idx]:
                 return 1
         return 0
@@ -149,7 +153,7 @@ def test_env_dynamics():
         for action in range(40):
             for n_state in range(440):
                 if rent.env_dynamics(state, action, n_state):
-                    print("State: {}, action {}, n_state: {} is true".format(state, action, n_state))
+                    print("State: {}, n_state: {}, action {} is true".format(rent.map_state(state), rent.map_state(n_state), action))
 
 
 def map_action(act_num):
@@ -193,4 +197,3 @@ def policy_iteration():
 
 if __name__ == "__main__":
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    # test_env_dynamics()
