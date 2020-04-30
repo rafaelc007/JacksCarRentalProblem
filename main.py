@@ -161,6 +161,12 @@ def test_map_state():
             print(rent.map_state())
 
 
+def randargmax(b, **kw):
+    """ a random tie-breaking argmax"""
+    b = np.array(b)
+    return np.argmax(np.random.random(b.shape) * (b == b.max()), **kw)
+
+
 def test_env_dynamics():
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
     for state in range(441):
@@ -172,8 +178,11 @@ def test_env_dynamics():
 
 def test_pol_eval():
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    policy = np.matrix([[0.5] * 41] * 441)
-    V = pol_eval(rent, policy)
+    policy = np.matrix([[0.0] * 41] * 441, dtype=float)
+    policy[:20, 23] = 1
+    policy[20:120, 13] = 1
+    policy[120:, 4] = 1
+    V = pol_eval(rent, policy, theta=1e-2)
     print(V)
 
 
@@ -204,9 +213,10 @@ def pol_eval(env, policy, theta=1e-4):
     while delta > theta:
         delta = 0.0
         for s in range(len(V)):
-            a = np.max(policy[s,:])
+            a = randargmax(policy[s,:])
             new_V = sum([env.env_dynamics(s, a, n_s)*(env.env_reward(a) + 0.9*V[n_s]) for n_s in range(len(V))])
             delta = np.maximum(delta, np.abs(V[s] - new_V))
+            print("delta: {}".format(delta))
             V[s] = new_V
     return V
 
