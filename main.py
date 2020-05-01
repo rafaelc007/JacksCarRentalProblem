@@ -48,6 +48,8 @@ class JackRental:
         :param store_param: list of parameters for the stores dynamics in format: [ren_m, ret_m]*num_of_stores
         """
         self._stores = [CarRental(*s_param) for s_param in store_param]
+        self._n_stores = len(self._stores)
+        self._n_states = sum([20*21**idx for idx in range(self._n_stores)])+1
 
     def rent_car(self, store_idx: int):
         rent_num = self._stores[store_idx].rent_car()
@@ -95,10 +97,10 @@ class JackRental:
         :param state_num: state index
         :return: [num_of_cars_store_n, ... num_of_cars_store_1, num_of_cars_store_0]
         """
-        if state_num > sum([20*21**idx for idx in range(len(self._stores))]):
+        if state_num > self._n_states:
             raise Exception("State value {} not defined!".format(state_num))
         store_car_num = []
-        for idx in range(len(self._stores), 0, -1):
+        for idx in range(self._n_stores, 0, -1):
             div_num = state_num//(21**idx)
             if div_num == 0:
                 store_car_num.append(state_num % 21)
@@ -178,10 +180,10 @@ def test_env_dynamics():
 
 def test_pol_eval():
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    policy = np.matrix([[0.0] * 41] * 441, dtype=float)
-    policy[:20, 23] = 1
-    policy[20:120, 13] = 1
-    policy[120:, 4] = 1
+    policy = np.array([0.0] * 441, dtype=float)
+    policy[:20] = 23
+    policy[20:120] = 40
+    policy[120:] = 5
     V = pol_eval(rent, policy, theta=1e-2)
     print(V)
 
@@ -202,29 +204,45 @@ def map_action(act_num: int):
         raise Exception("Action value {} not defined!".format(act_num))
 
 
-def pol_eval(env, policy, theta=1e-4):
+def pol_eval(env, policy, theta=1e-4, V=None):
     """
-    :param policy: matrix of policy in format [n_states, n_actions]
+    :param env: environment object
+    :param policy: array of policy in format [n_states]
     :param theta: threshold to stop the evaluation
+    :param V: pre-loaded value function
     :return: state values after policy evaluation
     """
-    V = np.zeros(policy.shape[0], dtype=float)
+    if V is None:
+        V = np.zeros(len(policy), dtype=float)
     delta = 1e100
     while delta > theta:
         delta = 0.0
         for s in range(len(V)):
-            a = randargmax(policy[s,:])
+            a = policy[s]
             new_V = sum([env.env_dynamics(s, a, n_s)*(env.env_reward(a) + 0.9*V[n_s]) for n_s in range(len(V))])
             delta = np.maximum(delta, np.abs(V[s] - new_V))
-            print("delta: {}".format(delta))
             V[s] = new_V
     return V
 
 
-def policy_iteration():
-    return
+def policy_iteration(env):
+    policy = np.random.randint(0, 15, 41)
+    V = np.zeros(len(policy), dtype=float)
+    Q = [0.0]*41
+    policy_instable = True
+    while policy_instable:
+        V = pol_eval(env, policy, V=V)
+
+        for s in range(len(V)):
+            old_action = policy[s]
+            for a in range(41):
+                Q[a] = sum([env.env_dynamics(s, a, n_s)*(env.env_reward(a) + 0.9*V[n_s]) for n_s in range(len(V))])
+            policy[s] = randargmax(Q)
+            if old_action == policy[s] : policy_instable = False
+    return policy, V
 
 
 if __name__ == "__main__":
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
+    # policy_iteration(rent)
     test_pol_eval()
