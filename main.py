@@ -129,7 +129,7 @@ class JackRental:
                 return 1
             return 0
         elif car_count[from_idx] - amount == next_car_count[from_idx] and \
-                car_count[to_idx] + amount == next_car_count[to_idx]:
+                np.min([car_count[to_idx] + amount, 5]) == next_car_count[to_idx]:
                 return 1
         return 0
 
@@ -256,5 +256,4 @@ if __name__ == "__main__":
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
     # policy_iteration(rent)
     # test_pol_eval()
-    #test_env_dynamics()
-    test_map_state2()
+    test_env_dynamics()
