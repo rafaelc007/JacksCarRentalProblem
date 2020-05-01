@@ -172,7 +172,7 @@ def randargmax(b, **kw):
 def test_env_dynamics():
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
     for state in range(441):
-        for action in range(42):
+        for action in range(41):
             for n_state in range(441):
                 if rent.env_dynamics(state, action, n_state):
                     print("State: {}, n_state: {}, action {} is true, reward {}".format(rent.map_state(state), rent.map_state(n_state), action, rent.env_reward(action)))
@@ -180,11 +180,8 @@ def test_env_dynamics():
 
 def test_pol_eval():
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    policy = np.array([0.0] * 441, dtype=float)
-    policy[:20] = 23
-    policy[20:120] = 40
-    policy[120:] = 5
-    V = pol_eval(rent, policy, theta=1e-2)
+    policy = np.random.randint(0, 40, rent._n_states)
+    V = pol_eval(rent, policy, theta=1e-1)
     print(V)
 
 
@@ -204,7 +201,7 @@ def map_action(act_num: int):
         raise Exception("Action value {} not defined!".format(act_num))
 
 
-def pol_eval(env, policy, theta=1e-4, V=None):
+def pol_eval(env, policy, theta=1e-3, V=None):
     """
     :param env: environment object
     :param policy: array of policy in format [n_states]
@@ -213,7 +210,7 @@ def pol_eval(env, policy, theta=1e-4, V=None):
     :return: state values after policy evaluation
     """
     if V is None:
-        V = np.zeros(len(policy), dtype=float)
+        V = np.zeros(env._n_states, dtype=float)
     delta = 1e100
     while delta > theta:
         delta = 0.0
@@ -221,6 +218,7 @@ def pol_eval(env, policy, theta=1e-4, V=None):
             a = policy[s]
             new_V = sum([env.env_dynamics(s, a, n_s)*(env.env_reward(a) + 0.9*V[n_s]) for n_s in range(len(V))])
             delta = np.maximum(delta, np.abs(V[s] - new_V))
+            print("delta: ", delta)
             V[s] = new_V
     return V
 
