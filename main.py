@@ -230,13 +230,13 @@ def pol_eval(env, policy, theta=1e-3, V=None):
             a = policy[s]
             new_V = sum([env.env_dynamics(s, a, n_s)*(env.env_reward(a) + 0.9*V[n_s]) for n_s in range(len(V))])
             delta = np.maximum(delta, np.abs(V[s] - new_V))
-            print("delta: ", delta)
+            # print("delta: ", delta)
             V[s] = new_V
     return V
 
 
 def policy_iteration(env):
-    policy = np.random.randint(0, 15, N_ACTIONS)
+    policy = np.random.randint(0, N_ACTIONS, env._n_states)
     V = np.zeros(len(policy), dtype=float)
     Q = [0.0]*N_ACTIONS
     policy_instable = True
@@ -254,6 +254,8 @@ def policy_iteration(env):
 
 if __name__ == "__main__":
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    # policy_iteration(rent)
+    pol, V = policy_iteration(rent)
+    print(pol)
+    [print("-", end="")]*11
+    print("\n", V)
     # test_pol_eval()
-    test_env_dynamics()
