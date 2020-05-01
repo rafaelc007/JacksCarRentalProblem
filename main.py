@@ -1,10 +1,13 @@
 import numpy as np
 
 
+N_ACTIONS = 11 # n_stores!*n_cars_max+1
+
 class CarRental:
     _num_of_cars = 0
     _rent_mean = None
     _return_mean = None
+    _max_cars = 5
 
     def __init__(self, ren_m, ret_m, start_num=0):   # a lot can go wrong with this initialization
         if ren_m > 0:
@@ -23,7 +26,7 @@ class CarRental:
         return self._num_of_cars
 
     def add_car(self, n_to_add):
-        self._num_of_cars = min(20, self._num_of_cars+n_to_add)
+        self._num_of_cars = min(self._max_cars, self._num_of_cars+n_to_add)
         return self._num_of_cars
 
     def rent_car(self):
@@ -48,8 +51,9 @@ class JackRental:
         :param store_param: list of parameters for the stores dynamics in format: [ren_m, ret_m]*num_of_stores
         """
         self._stores = [CarRental(*s_param) for s_param in store_param]
+        self._max_cars = self._stores[0]._max_cars
         self._n_stores = len(self._stores)
-        self._n_states = sum([20*21**idx for idx in range(self._n_stores)])+1
+        self._n_states = (self._max_cars+1)**self._n_stores
 
     def rent_car(self, store_idx: int):
         rent_num = self._stores[store_idx].rent_car()
@@ -88,7 +92,7 @@ class JackRental:
     def map_state(self):
         ans = 0
         for idx, store in enumerate(self._stores):
-            ans += (store._num_of_cars * 21 ** idx)
+            ans += (store._num_of_cars * (self._max_cars+1) ** idx)
         return ans
 
     def map_state(self, state_num):
@@ -100,13 +104,13 @@ class JackRental:
         if state_num > self._n_states:
             raise Exception("State value {} not defined!".format(state_num))
         store_car_num = []
-        for idx in range(self._n_stores, 0, -1):
-            div_num = state_num//(21**idx)
-            if div_num == 0:
-                store_car_num.append(state_num % 21)
-            else:
-                store_car_num.append(div_num)
-            state_num = state_num % (21**idx)
+        val_div = (self._max_cars+1)
+        div_num = 0
+        for idx in range(self._n_stores-1, 0, -1):
+            div_num = state_num//(val_div**idx)
+            store_car_num.append(div_num)
+            state_num = state_num % (val_div**idx)
+        store_car_num.append(state_num % val_div)
         return store_car_num
 
     def env_dynamics(self, state, action_idx, next_state):
@@ -139,7 +143,7 @@ def test_rent():
     routines = [rent.rent_car, rent.return_car, rent.move_car]
     print("Start value")
     print(rent)
-    [print("-", end="") for _ in range(20)]
+    [print("-", end="") for _ in range(rent._max_cars)]
     print("")
     for idx, routine in enumerate(routines):
         for st1 in range(2):
@@ -157,10 +161,17 @@ def test_rent():
 
 
 def test_map_state():
-    for idx1 in range(22):
-        for idx2 in range(20):
+    rent = JackRental([[3, 3, 0], [4, 2, 5]])
+    for idx1 in range(rent._max_cars):
+        for idx2 in range(rent._max_cars):
             rent = JackRental([[3, 3, idx2], [4, 2, idx1]])
             print(rent.map_state())
+
+
+def test_map_state2():
+    rent = JackRental([[3, 3, 0], [4, 2, 5]])
+    for idx in range(rent._n_states):
+        print("state {} is {}".format(idx, rent.map_state(idx)))
 
 
 def randargmax(b, **kw):
@@ -171,16 +182,16 @@ def randargmax(b, **kw):
 
 def test_env_dynamics():
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    for state in range(441):
-        for action in range(41):
-            for n_state in range(441):
+    for state in range(rent._n_states):
+        for action in range(N_ACTIONS):
+            for n_state in range(rent._n_states):
                 if rent.env_dynamics(state, action, n_state):
                     print("State: {}, n_state: {}, action {} is true, reward {}".format(rent.map_state(state), rent.map_state(n_state), action, rent.env_reward(action)))
 
 
 def test_pol_eval():
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    policy = np.random.randint(0, 40, rent._n_states)
+    policy = np.random.randint(0, N_ACTIONS, rent._n_states)
     V = pol_eval(rent, policy, theta=1e-1)
     print(V)
 
@@ -191,12 +202,13 @@ def map_action(act_num: int):
     :param act_num:  action ID
     :return: [from_idx, to_idx, amount]
     """
+    half_act = N_ACTIONS//2+1  # actually n_of stores
     if act_num == 0:
         return (0, 0, 0)
-    elif act_num < 21:
-        return (0, 1, act_num % 21)
-    elif act_num < 41:
-        return (1, 0, (act_num % 21) + 1)
+    elif act_num < half_act:
+        return (0, 1, act_num)
+    elif act_num < N_ACTIONS:
+        return (1, 0, (act_num % half_act) + 1)
     else:
         raise Exception("Action value {} not defined!".format(act_num))
 
@@ -224,16 +236,16 @@ def pol_eval(env, policy, theta=1e-3, V=None):
 
 
 def policy_iteration(env):
-    policy = np.random.randint(0, 15, 41)
+    policy = np.random.randint(0, 15, N_ACTIONS)
     V = np.zeros(len(policy), dtype=float)
-    Q = [0.0]*41
+    Q = [0.0]*N_ACTIONS
     policy_instable = True
     while policy_instable:
         V = pol_eval(env, policy, V=V)
 
         for s in range(len(V)):
             old_action = policy[s]
-            for a in range(41):
+            for a in range(N_ACTIONS):
                 Q[a] = sum([env.env_dynamics(s, a, n_s)*(env.env_reward(a) + 0.9*V[n_s]) for n_s in range(len(V))])
             policy[s] = randargmax(Q)
             if old_action == policy[s] : policy_instable = False
@@ -243,4 +255,6 @@ def policy_iteration(env):
 if __name__ == "__main__":
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
     # policy_iteration(rent)
-    test_pol_eval()
+    # test_pol_eval()
+    #test_env_dynamics()
+    test_map_state2()
