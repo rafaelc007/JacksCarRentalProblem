@@ -2,6 +2,7 @@ from scipy.stats import poisson
 import numpy as np
 import sys
 
+
 class poisson_:
 
     def __init__(self, lamb_param):
@@ -76,13 +77,16 @@ class ProblemDef:
     @staticmethod
     def moving_reward():
         return -2
+
+    @staticmethod
+    def max_moving_cars():
+        return 5
     
     A = location(3, 3)
     B = location(4, 2)
 
     value = np.zeros((max_cars()+1, max_cars()+1))
     policy = value.copy().astype(int)
-
 
     def expected_reward(self, state, action):
         """
@@ -159,3 +163,49 @@ class ProblemDef:
 
             if delta_param < eps_param:
                 break
+
+    def policy_improvement(self):
+        policy_stable = True
+        for i in range(self.value.shape[0]):
+            for j in range(self.value.shape[1]):
+                old_action = self.policy[i][j]
+
+                max_act_val = None
+                max_act = None
+
+                tal_12 = min(i, self.max_moving_cars())  # def boundaries
+                tal_21 = -min(j, self.max_moving_cars())
+
+                for act in range(tal_21, tal_12 + 1):
+                    ksi_param = self.expected_reward([i, j], act)
+                    if max_act_val is None:
+                        max_act_val = ksi_param
+                        max_act = act
+                    elif max_act_val < ksi_param:
+                        max_act_val = ksi_param
+                        max_act = act
+
+                self.policy[i][j] = max_act
+
+                if old_action != self.policy[i][j]:
+                    policy_stable = False
+
+        return policy_stable
+
+    def save_value(self):
+        with open("value_list", "a") as file:
+            file.write(str(self.value))
+
+    def save_policy(self):
+        with open("policy_list", "a") as file:
+            file.write(str(self.policy))
+
+if __name__ == "__main__":
+    prob = ProblemDef
+    while True:
+        prob.policy_evaluation()
+        param = prob.policy_improvement()
+        prob.save_value()
+        prob.save_policy()
+        if param == True:
+            break
