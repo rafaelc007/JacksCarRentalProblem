@@ -62,30 +62,16 @@ class location:
 # Location initialisation
 class ProblemDef:
 
-    @staticmethod
-    def max_cars():
-        return 20
-
-    @staticmethod
-    def disc_fact():
-        return 0.9
-
-    @staticmethod
-    def credit_reward():
-        return 10
-
-    @staticmethod
-    def moving_reward():
-        return -2
-
-    @staticmethod
-    def max_moving_cars():
-        return 5
+    _max_cars = 20
+    _disc_fact = 0.9
+    _credit_reward = 10
+    _moving_reward = -2
+    _max_moving_cars = 5
     
     A = location(3, 3)
     B = location(4, 2)
 
-    value = np.zeros((max_cars()+1, max_cars()+1))
+    value = np.zeros((_max_cars+1, _max_cars+1))
     policy = value.copy().astype(int)
 
     def expected_reward(self, state, action):
@@ -95,11 +81,11 @@ class ProblemDef:
         """
 
         rw = 0  # reward
-        new_state = [max(min(state[0] - action, self.max_cars()), 0), max(min(state[1] + action, self.max_cars()), 0)]
+        new_state = [max(min(state[0] - action, self._max_cars), 0), max(min(state[1] + action, self._max_cars), 0)]
 
         # adding reward for moving cars from one location to another (which is negative)
 
-        rw = rw + self.moving_reward() * abs(action)
+        rw = rw + self._moving_reward * abs(action)
 
         # there are four discrete random variables which determine the probability distribution of the reward and next state
 
@@ -122,15 +108,15 @@ class ProblemDef:
                         valid_requests_A = min(new_state[0], Aa)
                         valid_requests_B = min(new_state[1], Ba)
 
-                        rew = (valid_requests_A + valid_requests_B) * (self.credit_reward())
+                        rew = (valid_requests_A + valid_requests_B) * (self._credit_reward)
 
                         # calculating the new state based on the values of the four random variables
                         new_s = [0, 0]
-                        new_s[0] = max(min(new_state[0] - valid_requests_A + Ab, self.max_cars()), 0)
-                        new_s[1] = max(min(new_state[1] - valid_requests_B + Bb, self.max_cars()), 0)
+                        new_s[0] = max(min(new_state[0] - valid_requests_A + Ab, self._max_cars), 0)
+                        new_s[1] = max(min(new_state[1] - valid_requests_B + Bb, self._max_cars), 0)
 
                         # Bellman's equation
-                        rw += Prob * (rew + self.disc_fact() * self.value[new_s[0]][new_s[1]])
+                        rw += Prob * (rew + self._disc_fact * self.value[new_s[0]][new_s[1]])
 
         return rw
 
@@ -173,8 +159,8 @@ class ProblemDef:
                 max_act_val = None
                 max_act = None
 
-                tal_12 = min(i, self.max_moving_cars())  # def boundaries
-                tal_21 = -min(j, self.max_moving_cars())
+                tal_12 = min(i, self._max_moving_cars)  # def boundaries
+                tal_21 = -min(j, self._max_moving_cars)
 
                 for act in range(tal_21, tal_12 + 1):
                     ksi_param = self.expected_reward([i, j], act)
@@ -194,14 +180,14 @@ class ProblemDef:
 
     def save_value(self):
         with open("value_list", "a") as file:
-            file.write(str(self.value))
+            file.write(str(self.value)+"\n")
 
     def save_policy(self):
         with open("policy_list", "a") as file:
-            file.write(str(self.policy))
+            file.write(str(self.policy)+"\n")
 
 if __name__ == "__main__":
-    prob = ProblemDef
+    prob = ProblemDef()
     while True:
         prob.policy_evaluation()
         param = prob.policy_improvement()
