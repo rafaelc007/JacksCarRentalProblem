@@ -36,7 +36,7 @@ class CarRental:
         n_ret = np.random.poisson(self._return_mean)
         car_num = self.num_of_cars
         self.num_of_cars += n_ret
-        return car_num - self.num_of_cars
+        return self.num_of_cars - car_num
 
 
 if __name__ == "__main__":

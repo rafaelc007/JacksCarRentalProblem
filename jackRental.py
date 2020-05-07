@@ -22,11 +22,14 @@ class JackRental:
         rent_num = self._stores[store_idx]._rent_car()
         if rent_num == 0:
             print("missed rent")
+            return 0
         else:
             self._accumulated_cash += (10*rent_num)
+            return rent_num
 
     def _return_car(self, store_idx: int):
         ret_num = self._stores[store_idx]._return_car()
+        return  ret_num
 
     def _can_move_from_store(self, store_idx, amount):
         return self._stores[store_idx].num_of_cars >= amount
@@ -49,10 +52,12 @@ class JackRental:
             else:
                 print("Can't move {} cars from store {} to store {}!".format(amount, from_idx, to_idx))
 
-    def step(self):
+    def step(self, verbose=False):
         for store_idx in range(self._n_stores):
-            self._rent_car(store_idx)
-            self._return_car(store_idx)
+            no_rent = self._rent_car(store_idx)
+            no_return = self._return_car(store_idx)
+            if verbose:
+                print("Store {} => Rent: {}, Returned {}".format(store_idx, no_rent, no_return))
 
     def get_state(self):
         return [self._stores[idx].num_of_cars for idx in range(self._n_stores)]

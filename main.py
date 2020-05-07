@@ -34,13 +34,14 @@ def trans_action(action):
 def run_car_rent(policy):
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
     for idx in range(100):
-        rent.step()
+        rent.step(True)
         print("rent state:")
         print(rent)
         state = rent.get_state()
         action = policy[state[0]][state[1]]
         str1, str2, num = trans_action(action)
-        print("moving {} from {} to {}\n".format(str1, str2, num))
+        print("moving {} from {} to {}\n".format(num, str1, str2), end="")
+        print()
         rent.move_car(str1, str2, num)
 
 
