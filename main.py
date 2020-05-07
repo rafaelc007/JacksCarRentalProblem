@@ -4,7 +4,7 @@ from jackRental import JackRental, N_ACTIONS
 
 def test_rent():
     rent = JackRental([[3, 3, 0], [4, 2, 5]])
-    routines = [rent.rent_car, rent.return_car, rent.move_car]
+    routines = [rent._rent_car, rent._return_car, rent.move_car]
     print("Start value")
     print(rent)
     [print("-", end="") for _ in range(rent._max_cars)]
@@ -23,86 +23,43 @@ def test_rent():
                             print(routine)
                             print(rent)
 
+def trans_action(action):
+    if action > 0:
+        return 0, 1, action
+    elif action < 0:
+        return 1, 0, -action
+    else:
+        return 0, 0, 0
 
-def test_map_state():
-    rent = JackRental([[3, 3, 0], [4, 2, 5]])
-    for idx1 in range(rent._max_cars):
-        for idx2 in range(rent._max_cars):
-            rent = JackRental([[3, 3, idx2], [4, 2, idx1]])
-            print(rent.map_state())
-
-
-def test_map_state2():
-    rent = JackRental([[3, 3, 0], [4, 2, 5]])
-    for idx in range(rent._n_states):
-        print("state {} is {}".format(idx, rent.map_state(idx)))
-
-
-def randargmax(b, **kw):
-    """ a random tie-breaking argmax"""
-    b = np.array(b)
-    return np.argmax(np.random.random(b.shape) * (b == b.max()), **kw)
-
-
-def test_env_dynamics():
+def run_car_rent(policy):
     rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    for state in range(rent._n_states):
-        for action in range(N_ACTIONS):
-            for n_state in range(rent._n_states):
-                if rent.env_dynamics(state, action, n_state):
-                    print("State: {}, n_state: {}, action {} is true, reward {}".format(rent.map_state(state), rent.map_state(n_state), action, rent.env_reward(action)))
+    for idx in range(100):
+        rent.step()
+        print("rent state:")
+        print(rent)
+        state = rent.get_state()
+        action = policy[state[0]][state[1]]
+        str1, str2, num = trans_action(action)
+        print("moving {} from {} to {}\n".format(str1, str2, num))
+        rent.move_car(str1, str2, num)
 
 
-def test_pol_eval():
-    rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    policy = np.random.randint(0, N_ACTIONS, rent._n_states)
-    V = pol_eval(rent, policy, theta=1e-1)
-    print(V)
-
-
-def pol_eval(env, policy, theta=1e-3, V=None):
-    """
-    :param env: environment object
-    :param policy: array of policy in format [n_states]
-    :param theta: threshold to stop the evaluation
-    :param V: pre-loaded value function
-    :return: state values after policy evaluation
-    """
-    if V is None:
-        V = np.zeros(env._n_states, dtype=float)
-    delta = 1e100
-    while delta > theta:
-        delta = 0.0
-        for s in range(len(V)):
-            a = policy[s]
-            new_V = sum([env.env_dynamics(s, a, n_s)*(env.env_reward(a) + 0.9*V[n_s]) for n_s in range(len(V))])
-            delta = np.maximum(delta, np.abs(V[s] - new_V))
-            # print("delta: ", delta)
-            V[s] = new_V
-    return V
-
-
-def policy_iteration(env):
-    policy = np.random.randint(0, N_ACTIONS, env._n_states)
-    V = np.zeros(len(policy), dtype=float)
-    Q = [0.0]*N_ACTIONS
-    policy_instable = True
-    while policy_instable:
-        V = pol_eval(env, policy, V=V)
-
-        for s in range(len(V)):
-            old_action = policy[s]
-            for a in range(N_ACTIONS):
-                Q[a] = sum([env.env_dynamics(s, a, n_s)*(env.env_reward(a) + 0.9*V[n_s]) for n_s in range(len(V))])
-            policy[s] = randargmax(Q)
-            if old_action == policy[s] : policy_instable = False
-    return policy, V
-
+def read_from_file(filename, num_lines, start=0):
+    data = []
+    with open(filename, "r") as file:
+        [next(file) for _ in range(start-1)]
+        for idx in range(num_lines):
+            sub_data = []
+            str_line = file.readline()
+            str_line = str_line.strip("]\n")
+            for str_char in str_line.split(" "):
+                try:
+                    sub_data.append(int(str_char))
+                except ValueError:
+                    pass
+            data.append(sub_data)
+    return data
 
 if __name__ == "__main__":
-    rent = JackRental([[3, 3, 5], [4, 2, 5]])
-    pol, V = policy_iteration(rent)
-    print(pol)
-    [print("-", end="")]*11
-    print("\n", V)
-    # test_pol_eval()
+    policy = read_from_file("policy_list.txt", 21, 106)
+    run_car_rent(policy)

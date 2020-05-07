@@ -18,21 +18,21 @@ class CarRental:
         if start_num >= 0:
             self.num_of_cars = start_num
 
-    def remove_car(self, n_to_remove):
+    def _remove_car(self, n_to_remove):
         self.num_of_cars = max(0, self.num_of_cars - n_to_remove)
         return self.num_of_cars
 
-    def add_car(self, n_to_add):
+    def _add_car(self, n_to_add):
         self.num_of_cars = min(self.max_cars, self.num_of_cars + n_to_add)
         return self.num_of_cars
 
-    def rent_car(self):
+    def _rent_car(self):
         n_rent = np.random.poisson(self._rent_mean)
         car_num = self.num_of_cars
-        self.remove_car(n_rent)
+        self._remove_car(n_rent)
         return car_num - self.num_of_cars
 
-    def return_car(self):
+    def _return_car(self):
         n_ret = np.random.poisson(self._return_mean)
         car_num = self.num_of_cars
         self.num_of_cars += n_ret
