@@ -4,7 +4,7 @@ class CarRental:
     num_of_cars = 0
     _rent_mean = None
     _return_mean = None
-    max_cars = 5
+    max_cars = 20
 
     def __init__(self, ren_m, ret_m, start_num=0):   # a lot can go wrong with this initialization
         if ren_m > 0:
@@ -35,7 +35,7 @@ class CarRental:
     def _return_car(self):
         n_ret = np.random.poisson(self._return_mean)
         car_num = self.num_of_cars
-        self.num_of_cars += n_ret
+        self._add_car(n_ret)
         return self.num_of_cars - car_num
 
 

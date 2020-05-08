@@ -8,6 +8,9 @@ MAX_MOVE_CARS = 5   # max number of cars allowed to be moved
 class JackRental:
     _accumulated_cash = 0
 
+    def get_Cash(self):
+        return self._accumulated_cash
+
     def __init__(self, store_param: list):
         """
         Create a new conglomerate of stores
@@ -31,10 +34,7 @@ class JackRental:
         ret_num = self._stores[store_idx]._return_car()
         return  ret_num
 
-    def _can_move_from_store(self, store_idx, amount):
-        return self._stores[store_idx].num_of_cars >= amount
-
-    def move_car(self, from_idx: int, to_idx: int, amount: int):
+    def move_car(self, from_idx: int, to_idx: int, amount: int, verbose=False):
         if from_idx == to_idx:
             return
         if amount < 0:
@@ -45,12 +45,12 @@ class JackRental:
             return
         else:
             # moving cars
-            if self._can_move_from_store(from_idx, amount):
-                self._stores[from_idx]._remove_car(amount)
-                self._stores[to_idx]._add_car(amount)
-                self._accumulated_cash -= (2 * amount)
-            else:
-                print("Can't move {} cars from store {} to store {}!".format(amount, from_idx, to_idx))
+            if self._stores[from_idx].num_of_cars < amount:
+                amount = self._stores[from_idx].num_of_cars
+            self._stores[from_idx]._remove_car(amount)
+            self._stores[to_idx]._add_car(amount)
+            self._accumulated_cash -= (2 * amount)
+            print("moving {} from {} to {}\n".format(amount, from_idx, to_idx))
 
     def step(self, verbose=False):
         for store_idx in range(self._n_stores):
